@@ -1,116 +1,124 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:uts_adhityahp/models/department_model.dart';
 import 'package:uts_adhityahp/services/auth_service.dart';
 import 'package:uts_adhityahp/services/db_service.dart';
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  TextEditingController nameController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
     final dbService = Provider.of<DbService>(context);
 
+    dbService.allDepartments.isEmpty ? dbService.getAllDepartments() : null;
+    nameController.text.isEmpty
+        ? nameController.text = dbService.userModel?.name ?? ''
+        : null;
+
     return Scaffold(
-      body: FutureBuilder<UserModel>(
-        future: dbService.getUserData(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData) {
-            return Center(child: Text('Tidak Ada User'));
-          }
-
-          final user = snapshot.data!;
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Container(
-                  alignment: Alignment.centerLeft,
-                  margin: const EdgeInsets.only(top: 32, bottom: 10),
-                  child: const Text(
-                    "Profil Pegawai",
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black54,
-                      fontSize: 30,
+      body: dbService.userModel == null
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : Padding(
+              padding: const EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 20),
+                      alignment: Alignment.topRight,
+                      child: TextButton.icon(
+                          onPressed: () {
+                            Provider.of<AuthService>(context, listen: false)
+                                .signOut();
+                          },
+                          icon: const Icon(Icons.logout),
+                          label: const Text("Keluar")),
                     ),
-                  ),
-                ),
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 120,
-                          height: 120,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                              fit: BoxFit.cover,
-                              image: AssetImage('icon/profil.png'),
+                    Container(
+                      margin: const EdgeInsets.only(top: 20),
+                      height: 100,
+                      width: 100,
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/icon/profil.png',
+                          fit: BoxFit.cover,
+                          width: 50,
+                          height: 50,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 15,
+                    ),
+                    Text("Nomor Pegawai : ${dbService.userModel?.employeeId}"),
+                    const SizedBox(
+                      height: 30,
+                    ),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                          label: Text("Nama Lengkap"),
+                          border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(
+                      height: 15,
+                    ),
+                    dbService.allDepartments.isEmpty
+                        ? const LinearProgressIndicator()
+                        : SizedBox(
+                            width: double.infinity,
+                            child: DropdownButtonFormField(
+                              decoration: const InputDecoration(
+                                  border: OutlineInputBorder()),
+                              value: dbService.employeeDepartment ??
+                                  dbService.allDepartments.first.id,
+                              items: dbService.allDepartments
+                                  .map((DepartmentModel item) {
+                                return DropdownMenuItem(
+                                  value: item.id,
+                                  child: Text(
+                                    item.title,
+                                    style: const TextStyle(fontSize: 20),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (selectedValue) {
+                                dbService.employeeDepartment = selectedValue;
+                              },
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          user.name != '' ? user.name : "#${user.employeeId}",
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          "Marketing",
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                        const Divider(),
-                        IconButton(
-                          icon: const Icon(Icons.logout),
-                          onPressed: () {
-                            authService.signOut();
-                          },
-                          tooltip: 'Keluar',
-                          iconSize: 30,
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.all(0),
-                          constraints: const BoxConstraints(),
-                          visualDensity: VisualDensity.compact,
-                          splashRadius: 24,
-                          color: Colors.red,
-                          splashColor: Colors.white,
-                          highlightColor: Colors.transparent,
-                          hoverColor: Colors.transparent,
-                          focusColor: Colors.transparent,
-                          mouseCursor: SystemMouseCursors.click,
-                          enableFeedback: true,
-                        ),
-                      ],
+                    const SizedBox(
+                      height: 40,
                     ),
-                  ),
+                    SizedBox(
+                      width: 200,
+                      height: 50,
+                      child: ElevatedButton(
+                          onPressed: () {
+                            dbService.updateProfile(
+                                nameController.text.trim(), context);
+                          },
+                          child: const Text(
+                            "Perbarui Profil",
+                            style: TextStyle(fontSize: 20),
+                          )),
+                    )
+                  ],
                 ),
-              ],
+              ),
             ),
-          );
-        },
-      ),
     );
   }
 }
